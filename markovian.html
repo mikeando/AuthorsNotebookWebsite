@@ -34,13 +34,198 @@
 
         <section id="main_content">
           <h2>Introduction</h2>
-            <b>Coming soon</b>
+            <p>
+              Markovian is a command line utility for generating fake words or names. You give it one or 
+              more lists of words and it analyses their structure, finding some of the underlying rules 
+              and then using those to generate new words.
+            </p>
           <h2>Installation</h2>
-            <b>Coming soon</b>
-          <h2>Quick Start</h2>
-            <b>Coming soon</b>
+            <h3>Precompiled releases</h3>
+            <p>
+              Precompiled releases area available for macOS, windows and linux (untested).
+              You can download the most recent release from the 
+              <a href="https://github.com/mikeando/markovian/releases">releases page</a>.
+            </p>
+            <p>
+              If you're using windows you'll need to have the 
+              <a href="https://www.microsoft.com/en-au/download/details.aspx?id=48145">microsoft Visual C++ Redistributable 
+              libraries</a> installed.
+            </p>
+
+            <h3>Compiling from source</h3>
+            <p>
+              The source code is available on github from the <a href="https://github.com/mikeando/markovian"><code>mikeando/markovian</code></a> repository.
+              You will need the nightly version of the rust compiler and cargo installed.
+              Then you simply need to run <pre>cargo build --release</pre>
+            </p>
+
+            <h2>Quick Start</h2>
+              <h3>Installing the binary</h3>
+              <p>
+                Download the release for your platform from the
+                <a href="https://github.com/mikeando/markovian/releases">releases page</a>
+                and place it in an appropriate location.
+              </p>
+              <h3>Install a few word-lists</h3>
+              <p>
+                We'll use the <code>Moby_Names_M_lc.txt</code> downloadable from the Markovian
+                repository <a href="https://github.com/mikeando/markovian/tree/master/resources">resources</a>
+                and <code>theological_angels.txt</code> from the large list of wordlists from the data
+                of <a href="https://github.com/Tw1ddle/MarkovNameGenerator/tree/master/embed">MarkovNameGenerator</a>.
+              </p>
+              <h3>Generate some words</h3>
+              <p>
+                First we'll generate some names from the Moby_Name_M_lc.txt file
+              </p>
+<pre><code>&gt; markovian simple generate --encoding=string --count=5 \
+  Moby_Names_M_lc.txt
+stergiramessey
+barnan
+bralph
+jerrel
+jord
+</code></pre>
+            <p>
+              Next we'll use both of the word lists
+            </p>
+<pre><code>&gt; markovian simple generate --encoding=string --count=5 \
+  Moby_Names_M_lc.txt theological_angels.txt
+harutchel
+gord
+waylinton
+cord
+benatton
+</code></pre>
+            <p>
+              We can also request a specific prefix and/or suffix
+            </p>
+<pre><code>&gt; markovian simple generate --encoding=string --count=5 \
+  Moby_Names_M_lc.txt theological_angels.txt \
+  --prefix=jo
+joenjamey
+jophield
+jon
+jos
+johnaterrius
+&gt; markovian simple generate --encoding=string --count=5 \
+  Moby_Names_M_lc.txt theological_angels.txt \
+  --suffix=io
+alio
+meodovio
+hatrizio
+antonio
+allio
+&gt; markovian simple generate --encoding=string --count=5 \
+  Moby_Names_M_lc.txt theological_angels.txt \
+  --prefix=jo --suffix=io
+johansalvandrio
+jonancio
+jorrizio
+josidarrio
+jonancilio
+</code></pre>
+
+          <h3>Speeding it up</h3>
+          <p>
+            On large word-lists the `simple generate` command can be slow, as it needs to process a lot of data.
+            We can make the word generation run very quickly by precomputing everything it needs.
+          </p>
+
+          <p>Conceptually creating the preprocessed data has three steps.</p>
+          <ol>
+            <li>Determining the input symbols.</li>
+            <li>Identifying and combining symbols that occur together.</li>
+            <li>Building triplet map</li>
+          </ol>
+          <h4>Generating the initial symbol table</h4>
+            <p>The first stage is</p>
+<pre><code>markovian symbol-table generate --encoding=string \
+  --output=A.symboltable --input=word-list-1.txt --input=word-list-2.txt
+</code></pre>
+            <p>This generates a symbol table file called <code>A.symboltable</code> containing all the letters 
+            from the two input word lists --- you'll want to use a better name for the output.</p>
+            <p>You can see the list of symbols it uses</p>
+<pre><code>markovian symbol-table print --input=A.symtable</code></pre>
+            <p>For example</p>
+<pre><code>&gt; markovian symbol-table generate --encoding=string --output=Moby_initial.symboltable --input=Moby_Names_M_lc.txt 
+using 3878 input strings
+found 30 symbols
+wrote Moby_initial.symboltable 
+&gt; markovian symbol-table print --input=Moby_initial.symboltable
+encoding: char
+max symbol id: 30
+0 =&gt; START
+1 =&gt; END
+2 =&gt; a
+3 =&gt; r
+4 =&gt; o
+5 =&gt; n
+...
+24 =&gt; x
+25 =&gt; z
+26 =&gt; v
+27 =&gt; '
+28 =&gt;  
+29 =&gt; q
+</code></pre>
+            <h4>Combining symbols</h4>
+            <p>This step works on an existing symbol table file and looks for symbols that occur together frequently in the input
+            and combines them into one compound symbol.</p>
+<pre><code>markovian symbol-table improve A.symboltable --output=B.symboltable word-list-1.txt word-list-2.txt
+</code></pre>
+            <p>For example</p>
+<pre><code>&gt; markovian symbol-table improve Moby_initial.symboltable --output Moby_50.symboltable resources/Moby_Names_M_lc.txt 
+...
+&gt; markovian symbol-table print --input=Moby_50.symboltable
+encoding: char
+max symbol id: 80
+0 =&gt; START
+1 =&gt; END
+2 =&gt; a
+3 =&gt; r
+...
+29 =&gt; q
+30 =&gt; er
+31 =&gt; ar
+...
+75 =&gt; em
+76 =&gt; ab
+77 =&gt; do
+</code></pre>
+            <p>We can then see how this symbol-table breaks up words using</p>
+<pre><code>&gt; markovian symbol-table symbolify --symbol-separator=&quot;.&quot; Moby_50.symboltable johnathon stephan arnold eric
+johnathon =&gt; [&quot;j.o.h.n.a.th.on&quot;]
+stephan =&gt; [&quot;st.e.p.h.an&quot;]
+arnold =&gt; [&quot;ar.n.ol.d&quot;]
+eric =&gt; [&quot;er.i.c&quot;, &quot;e.ri.c&quot;]
+</code></pre>
+            <p>We only show the shortest symbols that produce the given word, but it is possible that more than one combination
+            can produce the same length - in the example above <code>eric</code> can be written two ways.</p>
+            <p>At the moment this performs a fixed number (50) of symbol combining steps. This will become configurable in the future.</p>
+            <p>If you want to combine more symbols you can rerun this stage on the new symbol table file.</p>
+            <h2>Generating the triplet maps / generator</h2>
+            <p>We create the triplet maps / generator file using</p>
+<pre><code>&gt; markovian generator create B.symboltable --output=A.generator word-list-1.txt word-list-2.txt
+</code></pre>
+            <h4>Generating words with the generator</h4>
+<pre><code>markovian generator generate A.generator
+</code></pre>
+            <p>You can add <code> --prefix=prefix</code>, <code>--suffix=suffix</code> and <code>--count=N</code> to this too.</p>
           <h2>Reference</h2>
-            <b>Coming soon</b>
+            Details about all commands are available using <code>markovian --help</code>
+          <h2>Contact Me</h2>
+            You can contact me with feedback or issues through the 
+            <a href="https://github.com/mikeando/markovian/issues">issues page</a> on github.
+          <h2>Word Lists</h2>
+          <p>
+          <ul>
+            <li><a href="https://github.com/Tw1ddle/MarkovNameGenerator">MarkovNameGenerator</a> has some great word lists in its <a href="https://github.com/Tw1ddle/MarkovNameGenerator/tree/master/embed">embed directory</a>.</li>
+            <li><a href="http://www.gutenberg.org/ebooks/3201">Moby Word Lists</a> by Grady Ward contain compiled from data in the project Guttenberg library</li>
+          </ul>
+        </p>
+        <p>
+          If you know of any other great word-lists I'd love to add them here.
+        </p>
         </section>
 
         <footer>

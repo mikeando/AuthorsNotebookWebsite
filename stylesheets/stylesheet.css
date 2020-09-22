@@ -179,7 +179,7 @@ code {
 }
 
 pre {
-  padding: 20px;
+  padding: 15px;
   background: #303030;
   color: #f2f2f2;
   text-shadow: none;
@@ -252,7 +252,7 @@ h2 {
 } 
 
 h3 {
-  color: #d5000d;
+  color: #810202;
   font-size: 18px;
   font-weight: bold;
   margin-bottom: 8px;
@@ -275,7 +275,7 @@ h6 {
 } 
 
 p {
-  font-weight: 300;
+  font-weight: 400;
   margin-bottom: 20px;
 }
  
